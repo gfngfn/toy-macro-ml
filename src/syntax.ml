@@ -1,6 +1,7 @@
 
 exception UnidentifiedToken of Range.t * string
 exception SeeEndOfFileInComment of Range.t
+exception UnknownBaseType of Range.t * string
 
 
 type identifier = string
@@ -10,12 +11,14 @@ let pp_identifier ppf s =
   Format.fprintf ppf "\"%s\"" s
 
 
-type binder = Range.t * identifier
-
-
 let pp_binder ppf (_, s) =
   Format.fprintf ppf "%a" pp_identifier s
 
+
+type base_type =
+  | IntType
+  | BoolType
+[@@deriving show { with_path = false; } ]
 
 type untyped_ast = Range.t * untyped_ast_main
   [@printer (fun ppf (_, utastmain) -> pp_untyped_ast_main ppf utastmain)]
@@ -29,131 +32,16 @@ and untyped_ast_main =
   | If       of untyped_ast * untyped_ast * untyped_ast
   | LetIn    of binder * untyped_ast * untyped_ast
   | LetRecIn of binder * untyped_ast * untyped_ast
-[@@deriving show { with_path = false; } ]
 
+and binder = (Range.t * identifier) * mono_type
 
-type base_type =
-  | IntType
-  | BoolType
-[@@deriving show { with_path = false; } ]
+and mono_type = Range.t * mono_type_main
 
-type 'a typ = Range.t * 'a typ_main
-(*
-  [@printer (fun (pp_sub : Format.formatter -> 'a -> unit) (ppf : Format.formatter) ((_, tymain) : 'a typ) -> Format.fprintf ppf "%a" (pp_typ_main pp_sub) tymain)]
-*)
-and 'a typ_main =
+and mono_type_main =
   | BaseType of base_type
-  | FuncType of 'a typ * 'a typ
-  | TypeVar  of 'a
+  | CodeType of mono_type
+  | FuncType of mono_type * mono_type
 [@@deriving show { with_path = false; } ]
-
-type mono_type_var =
-  | Free of FreeID.t
-  | Link of mono_type
-
-and mono_type = (mono_type_var ref) typ
-
-type poly_type_var =
-  | Mono  of mono_type_var ref
-  | Bound of BoundID.t
-
-type poly_type = poly_type_var typ
-
-
-module FreeIDHashTable = Hashtbl.Make(FreeID)
-
-
-let lift_scheme rngf pred ty =
-
-  let fidht = FreeIDHashTable.create 32 in
-
-  let intern fid =
-    match FreeIDHashTable.find_opt fidht fid with
-    | Some(bid) ->
-        bid
-
-    | None ->
-        let bid = BoundID.fresh () in
-        FreeIDHashTable.add fidht fid bid;
-        bid
-  in
-
-  let rec aux (rng, tymain) =
-    match tymain with
-    | BaseType(bty) ->
-        (rngf rng, BaseType(bty))
-
-    | TypeVar({contents = Link(ty)}) ->
-        aux ty
-
-    | TypeVar({contents = Free(fid)} as mtv) ->
-        let ptv =
-          if pred fid then
-            Bound(intern fid)
-          else
-            Mono(mtv)
-        in
-        (rngf rng, TypeVar(ptv))
-
-    | FuncType(ty1, ty2) ->
-        let pty1 = aux ty1 in
-        let pty2 = aux ty2 in
-        (rngf rng, FuncType(pty1, pty2))
-  in
-  aux ty
-
-
-let generalize lev ty =
-  lift_scheme
-    (fun _ -> Range.dummy "erased")
-    (fun fid ->
-      let levx = FreeID.get_level fid in
-      lev <= levx
-    ) ty
-
-
-let lift ty =
-  lift_scheme (fun rng -> rng) (fun _ -> false) ty
-
-
-module BoundIDHashTable = Hashtbl.Make(BoundID)
-
-
-let instantiate lev pty =
-
-  let bidht = BoundIDHashTable.create 32 in
-
-  let intern bid =
-    match BoundIDHashTable.find_opt bidht bid with
-    | Some(mtv) ->
-        mtv
-
-    | None ->
-        let fid = FreeID.fresh lev in
-        let mtv = ref (Free(fid)) in
-        BoundIDHashTable.add bidht bid mtv;
-        mtv
-  in
-
-  let rec aux (rng, ptymain) =
-    match ptymain with
-    | BaseType(bty) ->
-        (rng, BaseType(bty))
-
-    | TypeVar(Mono(mtv)) ->
-        (rng, TypeVar(mtv))
-
-    | TypeVar(Bound(bid)) ->
-        let mtv = intern bid in
-        (rng, TypeVar(mtv))
-
-    | FuncType(pty1, pty2) ->
-        let ty1 = aux pty1 in
-        let ty2 = aux pty2 in
-        (rng, FuncType(ty1, ty2))
-
-  in
-  aux pty
 
 
 let show_mono_type ty =
@@ -161,18 +49,16 @@ let show_mono_type ty =
     match tymain with
     | BaseType(IntType) -> "int"
     | BaseType(BoolType) -> "bool"
+
+    | CodeType(ty1) ->
+        let s = aux true ty1 in
+        "@" ^ s
+
     | FuncType(ty1, ty2) ->
         let s1 = aux true ty1 in
         let s2 = aux false ty2 in
         let s = s1 ^ " -> " ^ s2 in
         if isdom then "(" ^ s ^ ")" else s
-
-    | TypeVar(tvref) ->
-        begin
-          match !tvref with
-          | Link(ty) -> aux isdom ty
-          | Free(fid) -> Format.asprintf "%a" FreeID.pp fid
-        end
   in
   aux false ty
 

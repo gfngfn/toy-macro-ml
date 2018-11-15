@@ -18,8 +18,8 @@
 
   let make_lambda rngopt args e =
     let (_, elammain) as elam =
-      List.fold_right (fun ident e ->
-        (Range.dummy "make_lambda", Lambda(ident, e))
+      List.fold_right (fun arg e ->
+        (Range.dummy "make_lambda", Lambda(arg, e))
       ) args e
     in
     match rngopt with
@@ -33,7 +33,7 @@
     (rng, Apply((Range.dummy "binary", Apply((rngop, Var(vop)), e1)), e2))
 %}
 
-%token<Range.t> LET LETREC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE
+%token<Range.t> LET LETREC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE ATMARK COLON
 %token<Range.t * Syntax.identifier> IDENT BINOP_AMP BINOP_BAR BINOP_EQ BINOP_LT BINOP_GT
 %token<Range.t * Syntax.identifier> BINOP_TIMES BINOP_DIVIDES BINOP_PLUS BINOP_MINUS
 %token<Range.t * int> INT
@@ -55,25 +55,52 @@ main:
       }
   | IN; e=exprfun; EOI { e }
 ;
+ty:
+  | ty1=tybot; ARROW; ty2=ty {
+        let rng = make_range (Ranged(ty1)) (Ranged(ty2)) in
+        (rng, FuncType(ty1, ty2))
+      }
+  | ty=tybot { ty }
+;
+tybot:
+  | ident=IDENT {
+        let (rng, s) = ident in
+        let tymain =
+          match s with
+          | "int"  -> BaseType(IntType)
+          | "bool" -> BaseType(BoolType)
+          | _      -> raise (UnknownBaseType(rng, s))
+        in
+        (rng, tymain)
+      }
+  | tok1=ATMARK; ty=tybot {
+        let rng = make_range (Token(tok1)) (Ranged(ty)) in
+        (rng, CodeType(ty))
+      }
+  | LPAREN; ty=ty; RPAREN { ty }
+;
 ident:
   | ident=IDENT { ident }
 ;
+ident_and_ty:
+  | LPAREN; ident=IDENT; COLON; ty=ty; RPAREN { (ident, ty) }
+;
 letdec:
-  | tok1=LET; ident=IDENT; args=list(ident); DEFEQ; e1=exprlet {
-        (tok1, ident, false, make_lambda None args e1)
+  | tok1=LET; ident_and_ty=ident_and_ty; args=list(ident_and_ty); DEFEQ; e1=exprlet {
+        (tok1, ident_and_ty, false, make_lambda None args e1)
       }
-  | tok1=LETREC; ident=IDENT; args=list(ident); DEFEQ; e1=exprlet {
-        (tok1, ident, true, make_lambda None args e1)
+  | tok1=LETREC; ident_and_ty=ident_and_ty; args=list(ident_and_ty); DEFEQ; e1=exprlet {
+        (tok1, ident_and_ty, true, make_lambda None args e1)
       }
 ;
 exprlet:
   | dec=letdec; IN; e2=exprlet {
-        let (tok1, ident, isrec, e1) = dec in
+        let (tok1, ident_and_ty, isrec, e1) = dec in
         let rng = make_range (Token(tok1)) (Ranged(e2)) in
         if isrec then
-          (rng, LetRecIn(ident, e1, e2))
+          (rng, LetRecIn(ident_and_ty, e1, e2))
         else
-          (rng, LetIn(ident, e1, e2))
+          (rng, LetIn(ident_and_ty, e1, e2))
       }
   | tok1=IF; e0=exprlet; THEN; e1=exprlet; ELSE; e2=exprlet {
         let rng = make_range (Token(tok1)) (Ranged(e2)) in
@@ -82,7 +109,7 @@ exprlet:
   | e=exprfun { e }
 ;
 exprfun:
-  | tok1=LAMBDA; args=nonempty_list(ident); ARROW; e=exprlet {
+  | tok1=LAMBDA; args=nonempty_list(ident_and_ty); ARROW; e=exprlet {
         let rng = make_range (Token(tok1)) (Ranged(e)) in
         make_lambda (Some(rng)) args e
       }

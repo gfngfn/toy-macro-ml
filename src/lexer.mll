@@ -42,6 +42,8 @@ rule token = parse
   | "->" { ARROW(Range.from_lexbuf lexbuf) }
   | "("  { LPAREN(Range.from_lexbuf lexbuf) }
   | ")"  { RPAREN(Range.from_lexbuf lexbuf) }
+  | ":"  { COLON(Range.from_lexbuf lexbuf) }
+  | "@"  { ATMARK(Range.from_lexbuf lexbuf) }
   | "/*" { comment (Range.from_lexbuf lexbuf) lexbuf; token lexbuf }
   | ("&" (nssymbol*)) { BINOP_AMP(Range.from_lexbuf lexbuf, Lexing.lexeme lexbuf) }
   | ("|" (nssymbol*)) { BINOP_BAR(Range.from_lexbuf lexbuf, Lexing.lexeme lexbuf) }
