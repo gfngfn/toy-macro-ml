@@ -33,7 +33,7 @@
     (rng, Apply((Range.dummy "binary", Apply((rngop, Var(vop)), e1)), e2))
 %}
 
-%token<Range.t> LET LETREC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE ATMARK COLON
+%token<Range.t> LET LETREC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE TILDE ATMARK COLON
 %token<Range.t * Syntax.identifier> IDENT BINOP_AMP BINOP_BAR BINOP_EQ BINOP_LT BINOP_GT
 %token<Range.t * Syntax.identifier> BINOP_TIMES BINOP_DIVIDES BINOP_PLUS BINOP_MINUS
 %token<Range.t * int> INT
@@ -152,4 +152,12 @@ exprbot:
   | c=INT { let (rng, n) = c in (rng, Int(n)) }
   | ident=ident { let (rng, x) = ident in (rng, Var(x)) }
   | LPAREN; e=exprlet; RPAREN { e }
+  | tok1=ATMARK; e=exprbot {
+        let rng = make_range (Token(tok1)) (Ranged(e)) in
+        (rng, Next(e))
+      }
+  | tok1=TILDE; e=exprbot {
+        let rng = make_range (Token(tok1)) (Ranged(e)) in
+        (rng, Prev(e))
+      }
 ;

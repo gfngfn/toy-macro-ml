@@ -5,6 +5,7 @@ open Syntax
 exception UnboundVariable of Range.t * string
 exception ContradictionError of mono_type * mono_type
 exception NotAFunction of Range.t * mono_type
+exception NotACode of Range.t * mono_type
 
 
 let unify tyact tyexp =
@@ -75,6 +76,21 @@ let rec aux tyenv (rng, utastmain) =
       unify ty1 tyf;
       let ty2 = aux tyenv utast2 in
       ty2
+
+  | Prev(utast1) ->
+      let ty1 = aux tyenv utast1 in
+      begin
+        match ty1 with
+        | (_, CodeType(ty)) ->
+            ty
+
+        | _ ->
+            raise (NotACode(rng, ty1))
+      end
+
+  | Next(utast1) ->
+      let ty1 = aux tyenv utast1 in
+      (rng, CodeType(ty1))
 
 
 let main utast =

@@ -32,6 +32,8 @@ and untyped_ast_main =
   | If       of untyped_ast * untyped_ast * untyped_ast
   | LetIn    of binder * untyped_ast * untyped_ast
   | LetRecIn of binder * untyped_ast * untyped_ast
+  | Next     of untyped_ast
+  | Prev     of untyped_ast
 
 and binder = (Range.t * identifier) * mono_type
 
