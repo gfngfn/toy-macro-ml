@@ -48,9 +48,9 @@ let rec aux tyenv (rng, utastmain) =
       let ty1 = aux tyenv utast1 in
       let ty2 = aux tyenv utast2 in
       begin
-        match ty2 with
+        match ty1 with
         | (_, FuncType(tydom, tycod)) ->
-            unify ty1 tydom;
+            unify ty2 tydom;
             tycod
 
         | _ ->
