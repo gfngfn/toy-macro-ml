@@ -5,11 +5,25 @@ open Syntax
 module VarMap = Map.Make(String)
 
 
-type t = mono_type VarMap.t
+type bound_to =
+  | Normal  of mono_type * stage
+  | Late    of mono_type
+  | Macro   of macro_param_type list * mono_type
+
+type t = {
+  main : bound_to VarMap.t;
+}
 
 
-let empty = VarMap.empty
+let empty =
+  {
+    main = VarMap.empty;
+  }
 
-let add = VarMap.add
+let add x boundto tyenv =
+  {
+    main = tyenv.main |> VarMap.add x boundto;
+  }
 
-let find_opt = VarMap.find_opt
+let find_opt x tyenv =
+  tyenv.main |> VarMap.find_opt x

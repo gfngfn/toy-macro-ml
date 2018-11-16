@@ -12,7 +12,7 @@ let initial_type_environment =
   let tyarith = i @-> i @-> i in
 
   List.fold_left (fun tyenv (x, ty) ->
-    tyenv |> Typeenv.add x ty
+    tyenv |> Typeenv.add x (Typeenv.Normal(ty, Stage0))
   ) Typeenv.empty [
     ("&&", tylogic);
     ("||", tylogic);

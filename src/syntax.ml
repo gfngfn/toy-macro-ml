@@ -20,6 +20,17 @@ type base_type =
   | BoolType
 [@@deriving show { with_path = false; } ]
 
+type stage =
+  | Stage0
+  | Stage1
+[@@deriving show { with_path = false; } ]
+
+type macro_param =
+  | EarlyParam   of identifier
+  | LateParam    of identifier
+  | BindingParam of identifier * identifier
+[@@deriving show { with_path = false; } ]
+
 type untyped_ast = Range.t * untyped_ast_main
   [@printer (fun ppf (_, utastmain) -> pp_untyped_ast_main ppf utastmain)]
 
@@ -34,8 +45,15 @@ and untyped_ast_main =
   | LetRecIn of binder * untyped_ast * untyped_ast
   | Next     of untyped_ast
   | Prev     of untyped_ast
+  | LetMacroIn of macro_param list * untyped_ast * untyped_ast
+  | ApplyMacro of identifier * macro_argument list
 
 and binder = (Range.t * identifier) * mono_type
+
+and macro_argument =
+  | EarlyArg   of untyped_ast
+  | LateArg    of untyped_ast
+  | BindingArg of identifier * untyped_ast
 
 and mono_type = Range.t * mono_type_main
 
@@ -43,6 +61,11 @@ and mono_type_main =
   | BaseType of base_type
   | CodeType of mono_type
   | FuncType of mono_type * mono_type
+
+and macro_param_type =
+  | EarlyParamType   of mono_type
+  | LateParamType    of mono_type
+  | BindingParamType of mono_type * mono_type
 [@@deriving show { with_path = false; } ]
 
 
