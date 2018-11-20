@@ -31,9 +31,19 @@
     let rng = make_range (Ranged(e1)) (Ranged(e2)) in
     let (rngop, vop) = op in
     (rng, Apply((Range.dummy "binary", Apply((rngop, Var(vop)), e1)), e2))
+
+
+  let macro_arg_cons ((rng, emain) as e) tail =
+    match emain with
+    | Prev(esub) -> EarlyArg(esub) :: tail
+    | _          -> LateArg(e) :: tail
+
+
+  let macro_binding_arg_cons (_, x) e tail =
+    BindingArg(x, e) :: tail
 %}
 
-%token<Range.t> LET LETREC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE TILDE ATMARK COLON
+%token<Range.t> LET LETREC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE TILDE ATMARK COLON COMMA EXCLAMATION
 %token<Range.t * Syntax.identifier> IDENT BINOP_AMP BINOP_BAR BINOP_EQ BINOP_LT BINOP_GT
 %token<Range.t * Syntax.identifier> BINOP_TIMES BINOP_DIVIDES BINOP_PLUS BINOP_MINUS
 %token<Range.t * int> INT
@@ -144,14 +154,6 @@ exprapp:
         let rng = make_range (Ranged(e1)) (Ranged(e2)) in
         (rng, Apply(e1, e2))
       }
-  | e=exprbot { e }
-;
-exprbot:
-  | rng=TRUE { (rng, Bool(true)) }
-  | rng=FALSE { (rng, Bool(false)) }
-  | c=INT { let (rng, n) = c in (rng, Int(n)) }
-  | ident=ident { let (rng, x) = ident in (rng, Var(x)) }
-  | LPAREN; e=exprlet; RPAREN { e }
   | tok1=ATMARK; e=exprbot {
         let rng = make_range (Token(tok1)) (Ranged(e)) in
         (rng, Next(e))
@@ -160,4 +162,23 @@ exprbot:
         let rng = make_range (Token(tok1)) (Ranged(e)) in
         (rng, Prev(e))
       }
+  | ident=ident; EXCLAMATION; LPAREN; macargs=macroargs; rng2=RPAREN {
+        let (rng1, x) = ident in
+        let rng = make_range (Token(rng1)) (Token(rng2)) in
+        (rng, ApplyMacro(x, macargs))
+      }
+  | e=exprbot { e }
+;
+macroargs:
+  | e=exprlet                                           { macro_arg_cons e [] }
+  | e=exprlet; COMMA; tail=macroargs                    { macro_arg_cons e tail }
+  | ident=ident; ARROW; e=exprlet                       { macro_binding_arg_cons ident e [] }
+  | ident=ident; ARROW; e=exprlet COMMA; tail=macroargs { macro_binding_arg_cons ident e tail }
+;
+exprbot:
+  | rng=TRUE { (rng, Bool(true)) }
+  | rng=FALSE { (rng, Bool(false)) }
+  | c=INT { let (rng, n) = c in (rng, Int(n)) }
+  | ident=ident { let (rng, x) = ident in (rng, Var(x)) }
+  | LPAREN; e=exprlet; RPAREN { e }
 ;
