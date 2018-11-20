@@ -71,14 +71,25 @@ let () =
   | Typechecker.ContradictionError(ty1, ty2) ->
       let (rng1, _) = ty1 in
       let (rng2, _) = ty2 in
-      let (rng, ty, tyreq) =
+      let (rng, ty, tyreq, rngreqopt) =
         if Range.is_dummy rng1 then
-          (rng2, ty2, ty1)
+          (rng2, ty2, ty1, None)
         else
-          (rng1, ty1, ty2)
+          if Range.is_dummy rng2 then
+            (rng1, ty1, ty2, None)
+          else
+            (rng1, ty1, ty2, Some(rng2))
       in
-      Format.printf "%a: this expression has type %a but is expected of type %a\n"
-        Range.pp rng pp_mono_type ty pp_mono_type tyreq
+      begin
+        match rngreqopt with
+        | None ->
+            Format.printf "%a: this expression has type %a but is expected of type %a\n"
+              Range.pp rng pp_mono_type ty pp_mono_type tyreq
+
+        | Some(rngreq) ->
+            Format.printf "%a: this expression has type %a but is expected of type %a; this constraint is required by %a\n"
+              Range.pp rng pp_mono_type ty pp_mono_type tyreq Range.pp rngreq
+      end
 
   | Typechecker.NotACode(rng, ty) ->
       Format.printf "%a: this expression is expected of some code type but has type %a\n"

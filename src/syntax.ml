@@ -92,6 +92,20 @@ let pp_mono_type ppf ty =
   Format.fprintf ppf "%s" (show_mono_type ty)
 
 
+let rec erase_range (_, tymain) =
+  let iter = erase_range in
+  let tymain =
+    match tymain with
+    | BaseType(_)        -> tymain
+    | FuncType(ty1, ty2) -> FuncType(iter ty1, iter ty2)
+    | CodeType(ty1)      -> CodeType(iter ty1)
+  in
+  (Range.dummy "erased", tymain)
+
+
+let overwrite_range rng (_, tymain) = (rng, tymain)
+
+
 module Acc : sig
   type 'a t
   val empty : 'a t

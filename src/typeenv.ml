@@ -6,6 +6,7 @@ module VarMap = Map.Make(String)
 
 
 type bound_to =
+  | Primitive of mono_type
   | Normal  of mono_type * stage
   | Late    of mono_type
   | Bindee  of identifier * mono_type * mono_type

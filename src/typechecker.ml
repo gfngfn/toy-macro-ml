@@ -44,7 +44,7 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
   | Bool(_) -> (rng, BaseType(BoolType))
 
   | Var(x) ->
-      begin
+      let ty =
         match tyenv |> Typeenv.find_opt x with
         | None ->
             raise (UnboundVariable(rng, x))
@@ -52,6 +52,9 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
         | Some(boundto) ->
             begin
               match boundto with
+              | Typeenv.Primitive(ty) ->
+                  ty
+
               | Typeenv.Normal((ty, stgreq)) ->
                   if stgreq = stg then
                     let (_, tymain) = ty in
@@ -87,7 +90,8 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
               | Typeenv.Macro(_) ->
                   raise (InvalidMacroOccurrence(rng, x))
             end
-      end
+      in
+      overwrite_range rng ty
 
   | Lambda(((rngv, x), tydom), utast0) ->
       let tycod = aux stg (tyenv |> Typeenv.add x (Typeenv.Normal(tydom, stg))) utast0 in
@@ -100,7 +104,7 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
         match ty1 with
         | (_, FuncType(tydom, tycod)) ->
             unify ty2 tydom;
-            tycod
+            overwrite_range rng tycod
 
         | _ ->
             let (rng1, _) = utast1 in
@@ -113,15 +117,15 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
       let ty1 = aux stg tyenv utast1 in
       let ty2 = aux stg tyenv utast2 in
       unify ty1 ty2;
-      ty1
+      overwrite_range rng ty1
 
   | LetIn(((_, x), ty1), utast1, utast2) ->
-      let tyenv = tyenv |> Typeenv.add x (Typeenv.Normal(ty1, stg)) in
+      let tyenv = tyenv |> Typeenv.add x (Typeenv.Normal(erase_range ty1, stg)) in
       let ty2 = aux stg tyenv utast2 in
       ty2
 
   | LetRecIn(((rngv, x), tyf), utast1, utast2) ->
-      let tyenv = tyenv |> Typeenv.add x (Typeenv.Normal(tyf, stg)) in
+      let tyenv = tyenv |> Typeenv.add x (Typeenv.Normal(erase_range tyf, stg)) in
       let ty1 = aux stg tyenv utast1 in
       unify ty1 tyf;
       let ty2 = aux stg tyenv utast2 in
@@ -138,7 +142,7 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
             begin
               match ty1 with
               | (_, CodeType(ty)) ->
-                  ty
+                  overwrite_range rng ty
 
               | _ ->
                   raise (NotACode(rng, ty1))
@@ -191,7 +195,7 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
           in
           let ty1 = aux Stage1 tyenv1 utast1 in
           unify ty1 ty1req;
-          let ty2 = aux Stage1 tyenv utast2 in
+          let ty2 = aux Stage1 tyenv2 utast2 in
           ty2
       end
 
@@ -209,7 +213,7 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
 
               | Stage1 ->
                   aux_macro_args rng tyenv macparamtys macargs;
-                  ty
+                  overwrite_range rng ty
             end
 
         | Some(_) ->
@@ -230,16 +234,16 @@ and aux_macro_args (rng : Range.t) (tyenv : Typeenv.t) (macparamtys : macro_para
           match (macparamty, macarg) with
           | (EarlyParamType(tyP), EarlyArg(utastA)) ->
               let tyA = aux Stage0 tyenv utastA in
-              unify tyP tyA
+              unify tyA tyP
 
           | (LateParamType(tyP), LateArg(utastA)) ->
               let tyA = aux Stage1 tyenv utastA in
-              unify tyP tyA
+              unify tyA tyP
 
           | (BindingParamType(tyB, tyP), BindingArg(x, utastA)) ->
               let tyenv = tyenv |> Typeenv.add x (Typeenv.Late(tyB)) in
               let tyA = aux Stage1 tyenv utastA in
-              unify tyP tyA
+              unify tyA tyP
 
           | _ ->
               raise (MacroArgContradiction(rng, macparamty, macarg))
