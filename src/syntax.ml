@@ -106,6 +106,34 @@ let rec erase_range (_, tymain) =
 let overwrite_range rng (_, tymain) = (rng, tymain)
 
 
+type ev_value =
+  | ValInt     of int
+  | ValBool    of bool
+  | ValClosure of identifier * ev_ast
+
+and ev_value_0 =
+  | V0Embed     of ev_value
+  | V0Primitive of identifier
+  | V0Next      of ev_value_1
+
+and ev_value_1 =
+  | V1Embed     of ev_value
+  | V1Primitive of identifier
+  | V1Variable  of identifier
+  | V1Lambda    of identifier * ev_value_1
+  | V1Apply     of ev_value_1 * ev_value_1
+
+and ev_ast =
+  | EvValue0   of ev_value_0
+  | EvValue1   of ev_value_1
+  | EvVariable of identifier
+  | EvFix      of identifier option * identifier * ev_ast
+  | EvApply    of ev_ast * ev_ast
+  | EvIf       of ev_ast * ev_ast * ev_ast
+  | EvPrev     of ev_ast
+  | EvNext     of ev_ast
+[@@deriving show { with_path = false; } ]
+
 module Acc : sig
   type 'a t
   val empty : 'a t

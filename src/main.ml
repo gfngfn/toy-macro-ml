@@ -6,8 +6,8 @@ let main fname =
   let inc = open_in fname in
   let lexbuf = Lexing.from_channel inc in
   let utast = ParserInterface.process lexbuf in
-  let ty = Typechecker.main utast in
-  Format.printf "%a\n" pp_untyped_ast utast;
+  let (ty, eve) = Typechecker.main utast in
+  Format.printf "%a\n" pp_ev_ast eve;
   Format.printf "%a\n" pp_mono_type ty
 
 
