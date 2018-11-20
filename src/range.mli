@@ -9,4 +9,6 @@ val from_positions : Lexing.position * Lexing.position -> t
 
 val dummy : string -> t
 
+val is_dummy : t -> bool
+
 val unite : t -> t -> t

@@ -11,9 +11,11 @@ exception MacroArgContradiction of Range.t * macro_param_type * macro_argument
 exception InvalidNumberOfMacroArgs of Range.t * int * int
 exception InvalidPrev of Range.t
 exception InvalidNext of Range.t
+exception InvalidLetMacro of Range.t
 exception ContradictionError of mono_type * mono_type
 exception NotAFunction of Range.t * mono_type
 exception NotACode of Range.t * mono_type
+exception ShouldBeBound of Range.t * identifier * identifier * mono_type
 
 
 let unify tyact tyexp =
@@ -50,18 +52,36 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
         | Some(boundto) ->
             begin
               match boundto with
-              | Typeenv.Normal((tyx, stgx)) ->
-                  if stgx = stg then
-                    let (_, tymain) = tyx in
+              | Typeenv.Normal((ty, stgreq)) ->
+                  if stgreq = stg then
+                    let (_, tymain) = ty in
                     (rng, tymain)
                   else
-                    raise (InvalidOccurrenceAsToStage(rng, x, stgx, stg))
+                    raise (InvalidOccurrenceAsToStage(rng, x, stg, stgreq))
 
               | Typeenv.Late(ty) ->
                   begin
                     match stg with
-                    | Stage1 -> ty
                     | Stage0 -> raise (InvalidOccurrenceAsToStage(rng, x, stg, Stage1))
+                    | Stage1 -> ty
+                  end
+
+              | Typeenv.Bindee(x1, ty1req, ty) ->
+                  begin
+                    match stg with
+                    | Stage0 ->
+                        raise (InvalidOccurrenceAsToStage(rng, x, stg, Stage1))
+
+                    | Stage1 ->
+                        begin
+                          match tyenv |> Typeenv.find_opt x1 with
+                          | Some(Typeenv.Normal(ty1, Stage1)) ->
+                              unify ty1 ty1req;
+                              ty
+
+                          | _ ->
+                              raise (ShouldBeBound(rng, x, x1, ty1req))
+                        end
                   end
 
               | Typeenv.Macro(_) ->
@@ -136,8 +156,44 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
             (rng, CodeType(ty1))
       end
 
-  | LetMacroIn(x, macparams, utast1, utast2) ->
-      failwith "remains to be supported"  (* TEMPORARY *)
+  | LetMacroIn(x, macparams, ty1req, utast1, utast2) ->
+      begin
+        match stg with
+        | Stage0 ->
+            raise (InvalidLetMacro(rng))
+
+        | Stage1 ->
+          let macparamtys =
+            macparams |> List.map (function
+              | EarlyParam((_, ty))              -> EarlyParamType(ty)
+              | LateParam((_, ty))               -> LateParamType(ty)
+              | BindingParam((_, ty1), (_, ty2)) -> BindingParamType(ty1, ty2)
+            )
+          in
+          let tyenv2 = tyenv |> Typeenv.add x (Typeenv.Macro(macparamtys, ty1req)) in
+          let tyenv1 =
+            List.fold_left (fun tyenv macparam ->
+              match macparam with
+              | EarlyParam((ident, ty)) ->
+                  let (_, x) = ident in
+                  tyenv |> Typeenv.add x (Typeenv.Normal(ty, Stage0))
+
+              | LateParam((ident, ty)) ->
+                  let (_, x) = ident in
+                  tyenv |> Typeenv.add x (Typeenv.Late(ty))
+
+              | BindingParam((ident1, ty1), (ident2, ty2)) ->
+                  let (_, x1) = ident1 in
+                  let (_, x2) = ident2 in
+                  tyenv |> Typeenv.add x2 (Typeenv.Bindee(x1, ty1, ty2))
+
+            ) tyenv2 macparams
+          in
+          let ty1 = aux Stage1 tyenv1 utast1 in
+          unify ty1 ty1req;
+          let ty2 = aux Stage1 tyenv utast2 in
+          ty2
+      end
 
   | ApplyMacro(x, macargs) ->
       begin

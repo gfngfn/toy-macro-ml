@@ -63,6 +63,11 @@ main:
         else
           (rng, LetIn(ident, e1, e2))
       }
+  | dec=macdec; e2=main {
+        let (tok1, x, macparams, ty, e1) = dec in
+        let rng = make_range (Token(tok1)) (Ranged(e2)) in
+        (rng, LetMacroIn(x, macparams, ty, e1, e2))
+      }
   | IN; e=exprfun; EOI { e }
 ;
 ty:
@@ -92,8 +97,11 @@ tybot:
 ident:
   | ident=IDENT { ident }
 ;
-ident_and_ty:
-  | LPAREN; ident=IDENT; COLON; ty=ty; RPAREN { (ident, ty) }
+%inline ident_and_ty_raw:
+  | ident=IDENT; COLON; ty=ty { (ident, ty) }
+;
+%inline ident_and_ty:
+  | LPAREN; p=ident_and_ty_raw; RPAREN { p }
 ;
 letdec:
   | tok1=LET; ident_and_ty=ident_and_ty; params=list(ident_and_ty); DEFEQ; e1=exprlet {
@@ -103,10 +111,20 @@ letdec:
         (tok1, ident_and_ty, true, make_lambda None params e1)
       }
 ;
-macroparam:
-  | TILDE; ident_and_ty=ident_and_ty                                { EarlyParam(ident_and_ty) }
-  | ident_and_ty=ident_and_ty                                       { LateParam(ident_and_ty) }
-  | LPAREN; binder=ident_and_ty; ARROW; bindee=ident_and_ty; RPAREN { BindingParam(binder, bindee) }
+macdec:
+  | tok1=LETMAC; ident=ident; EXCLAMATION; LPAREN; macparams=macroparams; RPAREN; COLON; ty=ty; DEFEQ; e1=exprlet {
+        let (_, x) = ident in
+        (tok1, x, macparams, ty, e1)
+      }
+;
+macroparams:
+  | macparam=macroparam                          { macparam :: [] }
+  | macparam=macroparam; COMMA; tail=macroparams { macparam :: tail }
+;
+%inline macroparam:
+  | TILDE; ident_and_ty=ident_and_ty                        { EarlyParam(ident_and_ty) }
+  | ident_and_ty=ident_and_ty_raw                           { LateParam(ident_and_ty) }
+  | binder=ident_and_ty_raw; ARROW; bindee=ident_and_ty_raw { BindingParam(binder, bindee) }
 ;
 exprlet:
   | dec=letdec; IN; e2=exprlet {
@@ -117,10 +135,10 @@ exprlet:
         else
           (rng, LetIn(ident_and_ty, e1, e2))
       }
-  | tok1=LETMAC; ident=ident; EXCLAMATION; LPAREN; macparams=nonempty_list(macroparam); RPAREN; DEFEQ; e1=exprlet; IN; e2=exprlet {
-        let (_, x) = ident in
+  | dec=macdec; IN; e2=exprlet {
+        let (tok1, x, macparams, ty, e1) = dec in
         let rng = make_range (Token(tok1)) (Ranged(e2)) in
-        (rng, LetMacroIn(x, macparams, e1, e2))
+        (rng, LetMacroIn(x, macparams, ty, e1, e2))
       }
   | tok1=IF; e0=exprlet; THEN; e1=exprlet; ELSE; e2=exprlet {
         let rng = make_range (Token(tok1)) (Ranged(e2)) in

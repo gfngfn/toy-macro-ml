@@ -11,10 +11,6 @@ let pp_identifier ppf s =
   Format.fprintf ppf "\"%s\"" s
 
 
-let pp_binder ppf (_, s) =
-  Format.fprintf ppf "%a" pp_identifier s
-
-
 type base_type =
   | IntType
   | BoolType
@@ -23,7 +19,12 @@ type base_type =
 type stage =
   | Stage0
   | Stage1
-[@@deriving show { with_path = false; } ]
+
+
+let pp_stage ppf = function
+  | Stage0 -> Format.fprintf ppf "stage 0"
+  | Stage1 -> Format.fprintf ppf "stage 1"
+
 
 type untyped_ast = Range.t * untyped_ast_main
   [@printer (fun ppf (_, utastmain) -> pp_untyped_ast_main ppf utastmain)]
@@ -39,7 +40,7 @@ and untyped_ast_main =
   | LetRecIn of binder * untyped_ast * untyped_ast
   | Next     of untyped_ast
   | Prev     of untyped_ast
-  | LetMacroIn of identifier * macro_param list * untyped_ast * untyped_ast
+  | LetMacroIn of identifier * macro_param list * mono_type * untyped_ast * untyped_ast
   | ApplyMacro of identifier * macro_argument list
 
 and binder = (Range.t * identifier) * mono_type
@@ -89,3 +90,16 @@ let show_mono_type ty =
 
 let pp_mono_type ppf ty =
   Format.fprintf ppf "%s" (show_mono_type ty)
+
+
+module Acc : sig
+  type 'a t
+  val empty : 'a t
+  val extend : 'a t -> 'a -> 'a t
+  val to_list : 'a t -> 'a list
+end = struct
+  type 'a t = 'a list
+  let empty = []
+  let extend acc x = x :: acc
+  let to_list acc = List.rev acc
+end

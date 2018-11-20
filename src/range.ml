@@ -49,6 +49,11 @@ let from_lexbuf lexbuf =
 let dummy s = Dummy(s)
 
 
+let is_dummy = function
+  | Dummy(_) -> true
+  | _        -> false
+
+
 let unite r1 r2 =
   match (r1, r2) with
   | (Real(_), Dummy(_))    -> r1
