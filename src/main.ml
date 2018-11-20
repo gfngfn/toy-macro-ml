@@ -48,9 +48,31 @@ let () =
       Format.printf "%a: imvalid macro application of variable '%s'"
         Range.pp rng x
 
-  | Typechecker.MacroArgContradiction(rng, macparamty, macarg) ->
-      Format.printf "%a: "
+  | Typechecker.MacroArgContradiction(_, macparamty, macarg) ->
+      let (rng, sarg) =
+        match macarg with
+        | EarlyArg((rng, _))        -> (rng, "an early argument")
+        | LateArg((rng, _))         -> (rng, "a late argument")
+        | BindingArg((_, (rng, _))) -> (rng, "a binder/bindee argument")
+      in
+      let pp_req ppf = function
+        | EarlyParamType(ty) ->
+            Format.fprintf ppf "an early argument '~ ...' of type %a"
+              pp_mono_type ty
+
+        | LateParamType(ty) ->
+            Format.fprintf ppf "a late argument of type %a"
+              pp_mono_type ty
+
+        | BindingParamType(ty1, ty2) ->
+            Format.fprintf ppf "a binder/bindee argument where binder is of type %a and bindee is of type %a"
+              pp_mono_type ty1
+              pp_mono_type ty2
+      in
+      Format.printf "%a: %s is given, but the macro expects %a\n"
         Range.pp rng
+        sarg
+        pp_req macparamty
 
   | Typechecker.InvalidNumberOfMacroArgs(rng, n, nreq) ->
       Format.printf "%a: the macro requires %d argument(s), but here is applied to %d argument(s)\n"
