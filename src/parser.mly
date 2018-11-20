@@ -43,7 +43,7 @@
     BindingArg(x, e) :: tail
 %}
 
-%token<Range.t> LET LETREC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE TILDE ATMARK COLON COMMA EXCLAMATION
+%token<Range.t> LET LETREC LETMAC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE TILDE ATMARK COLON COMMA EXCLAMATION
 %token<Range.t * Syntax.identifier> IDENT BINOP_AMP BINOP_BAR BINOP_EQ BINOP_LT BINOP_GT
 %token<Range.t * Syntax.identifier> BINOP_TIMES BINOP_DIVIDES BINOP_PLUS BINOP_MINUS
 %token<Range.t * int> INT
@@ -96,12 +96,17 @@ ident_and_ty:
   | LPAREN; ident=IDENT; COLON; ty=ty; RPAREN { (ident, ty) }
 ;
 letdec:
-  | tok1=LET; ident_and_ty=ident_and_ty; args=list(ident_and_ty); DEFEQ; e1=exprlet {
-        (tok1, ident_and_ty, false, make_lambda None args e1)
+  | tok1=LET; ident_and_ty=ident_and_ty; params=list(ident_and_ty); DEFEQ; e1=exprlet {
+        (tok1, ident_and_ty, false, make_lambda None params e1)
       }
-  | tok1=LETREC; ident_and_ty=ident_and_ty; args=list(ident_and_ty); DEFEQ; e1=exprlet {
-        (tok1, ident_and_ty, true, make_lambda None args e1)
+  | tok1=LETREC; ident_and_ty=ident_and_ty; params=list(ident_and_ty); DEFEQ; e1=exprlet {
+        (tok1, ident_and_ty, true, make_lambda None params e1)
       }
+;
+macroparam:
+  | TILDE; ident_and_ty=ident_and_ty                                { EarlyParam(ident_and_ty) }
+  | ident_and_ty=ident_and_ty                                       { LateParam(ident_and_ty) }
+  | LPAREN; binder=ident_and_ty; ARROW; bindee=ident_and_ty; RPAREN { BindingParam(binder, bindee) }
 ;
 exprlet:
   | dec=letdec; IN; e2=exprlet {
@@ -111,6 +116,11 @@ exprlet:
           (rng, LetRecIn(ident_and_ty, e1, e2))
         else
           (rng, LetIn(ident_and_ty, e1, e2))
+      }
+  | tok1=LETMAC; ident=ident; EXCLAMATION; LPAREN; macparams=nonempty_list(macroparam); RPAREN; DEFEQ; e1=exprlet; IN; e2=exprlet {
+        let (_, x) = ident in
+        let rng = make_range (Token(tok1)) (Ranged(e2)) in
+        (rng, LetMacroIn(x, macparams, e1, e2))
       }
   | tok1=IF; e0=exprlet; THEN; e1=exprlet; ELSE; e2=exprlet {
         let rng = make_range (Token(tok1)) (Ranged(e2)) in

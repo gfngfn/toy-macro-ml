@@ -136,7 +136,7 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
             (rng, CodeType(ty1))
       end
 
-  | LetMacroIn(macparams, utast1, utast2) ->
+  | LetMacroIn(x, macparams, utast1, utast2) ->
       failwith "remains to be supported"  (* TEMPORARY *)
 
   | ApplyMacro(x, macargs) ->
