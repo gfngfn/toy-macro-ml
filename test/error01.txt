@@ -1,2 +1,0 @@
-
-let x = /* here is /* a comment */  1 in x
