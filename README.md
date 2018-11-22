@@ -45,18 +45,18 @@ Result0: <result-of-running-the-code>
 an expression:
   e ::=
     | '(' e ')'
-    | b                              (a Boolean value)
-    | n                              (an integer)
+    | b                                              (a Boolean value)
+    | n                                              (an integer)
     | x
     | 'fun' '(' x ':' ty ')' '->' e
     | e e
-    | 'let' x '=' e 'in' e
-    | 'letrec' x '=' e 'in' e
+    | 'let' '(' x ':' ty ')' '=' e 'in' e
+    | 'letrec' '('x ':' ty ')' '=' e 'in' e
     | 'if' e 'then' e 'else e
-    | 'letmac' x ps '=' e 'in' e     (a macro definition)
-    | x '!' '(' as ')'               (a macro application)
-    | '~' e                          (so-called an escape)
-    | '@' e                          (so-called a bracket)
+    | 'letmac' x '!' '(' ps ')' ':' ty '=' e 'in' e  (a macro definition)
+    | x '!' '(' as ')'                               (a macro application)
+    | '~' e                                          (so-called an escape)
+    | '@' e                                          (so-called a bracket)
 
 a non-empty sequence of macro parameter(s):
   ps ::= p | p ',' ps
