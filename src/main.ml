@@ -6,9 +6,12 @@ let main fname =
   let inc = open_in fname in
   let lexbuf = Lexing.from_channel inc in
   let utast = ParserInterface.process lexbuf in
-  let (ty, eve) = Typechecker.main utast in
-  Format.printf "%a\n" pp_ev_ast eve;
-  Format.printf "%a\n" pp_mono_type ty
+  let (tyenv, env) = Primitives.initial_type_environment in
+  let (ty, eve) = Typechecker.main tyenv utast in
+  Format.printf "Type: %a\n" RichPrinting.pp_mono_type ty;
+  let v = Evaluator.main env eve in
+  Format.printf "Result0: %a\n" RichPrinting.(pp_ev_value_0 Free) v;
+  ()
 
 
 let () =
@@ -83,7 +86,7 @@ let () =
         Range.pp rng
 
   | Typechecker.InvalidNext(rng) ->
-      Format.printf "%a: '@ ...' occurs at stage 1\n"
+      Format.printf "%a: '@@ ...' occurs at stage 1\n"
         Range.pp rng
 
   | Typechecker.InvalidLetMacro(rng) ->

@@ -87,12 +87,14 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
             begin
               match boundto with
               | Typeenv.Primitive(ty) ->
+(*
                   let eve =
                     match stg with
                     | Stage0 -> EvValue0(V0Primitive(x))
                     | Stage1 -> EvValue1(V1Primitive(x))
                   in
-                  (ty, eve)
+*)
+                  (ty, EvVariable(x))
 
               | Typeenv.Normal((ty, stgreq)) ->
                   if stgreq = stg then
@@ -312,6 +314,5 @@ and aux_macro_args (rng : Range.t) (tyenv : Typeenv.t) (macparamtys : macro_para
   iter Acc.empty macparamtys macargs
 
 
-let main utast =
-  let tyenv = Primitives.initial_type_environment in
-  aux Stage0 tyenv utast
+let main tyenv utast =
+  aux Stage1 tyenv utast

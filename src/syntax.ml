@@ -69,29 +69,6 @@ and macro_param_type =
 [@@deriving show { with_path = false; } ]
 
 
-let show_mono_type ty =
-  let rec aux isdom (_, tymain) =
-    match tymain with
-    | BaseType(IntType) -> "int"
-    | BaseType(BoolType) -> "bool"
-
-    | CodeType(ty1) ->
-        let s = aux true ty1 in
-        "@" ^ s
-
-    | FuncType(ty1, ty2) ->
-        let s1 = aux true ty1 in
-        let s2 = aux false ty2 in
-        let s = s1 ^ " -> " ^ s2 in
-        if isdom then "(" ^ s ^ ")" else s
-  in
-  aux false ty
-
-
-let pp_mono_type ppf ty =
-  Format.fprintf ppf "%s" (show_mono_type ty)
-
-
 let rec erase_range (_, tymain) =
   let iter = erase_range in
   let tymain =
@@ -107,32 +84,38 @@ let overwrite_range rng (_, tymain) = (rng, tymain)
 
 
 type ev_value =
-  | ValInt     of int
-  | ValBool    of bool
-  | ValClosure of identifier * ev_ast
+  | ValInt  of int
+  | ValBool of bool
 
 and ev_value_0 =
   | V0Embed     of ev_value
+  | V0Closure   of identifier option * identifier * ev_ast * environment
   | V0Primitive of identifier
   | V0Next      of ev_value_1
 
 and ev_value_1 =
   | V1Embed     of ev_value
-  | V1Primitive of identifier
-  | V1Variable  of identifier
-  | V1Lambda    of identifier * ev_value_1
+  | V1Operation of ev_value_1 Operation.t
+  | V1Symbol    of Symbol.t
+  | V1Fix       of Symbol.t option * Symbol.t * ev_value_1
   | V1Apply     of ev_value_1 * ev_value_1
+  | V1If        of ev_value_1 * ev_value_1 * ev_value_1
 
 and ev_ast =
-  | EvValue0   of ev_value_0
-  | EvValue1   of ev_value_1
-  | EvVariable of identifier
-  | EvFix      of identifier option * identifier * ev_ast
-  | EvApply    of ev_ast * ev_ast
-  | EvIf       of ev_ast * ev_ast * ev_ast
-  | EvPrev     of ev_ast
-  | EvNext     of ev_ast
+  | EvValue0    of ev_value_0
+  | EvValue1    of ev_value_1
+  | EvVariable  of identifier
+  | EvFix       of identifier option * identifier * ev_ast
+  | EvApply     of ev_ast * ev_ast
+  | EvOperation of ev_ast Operation.t
+  | EvIf        of ev_ast * ev_ast * ev_ast
+  | EvPrev      of ev_ast
+  | EvNext      of ev_ast
+
+and environment = (ev_value_0, ev_value_1) Env.t
+  [@printer (fun ppf _ -> Format.fprintf ppf "<Env>")]
 [@@deriving show { with_path = false; } ]
+
 
 module Acc : sig
   type 'a t
