@@ -8,7 +8,7 @@ This is an implementation of *MacroML* \[1\]. It consists of
 The syntax and the type system are naturally extended from the original version as to macro parameters. See the paper below for detail:
 
 > 1. Steve Ganz, Amr Sabry, and Walid Taha. [Macros as multi-stage computations: Type-safe, generative, binding macros in MacroML](https://dl.acm.org/citation.cfm?id=507646). In _Proceedings of the International Conference on Functional Programming (ICFP’01)_, pages 74–85, 2001.
-> 2. Walid Taha and Tim Sheard. MetaML: Multi-stage programming with explicit annotations. In _Proceedings of the Symposium on Partial Evaluation and Semantic-Based Program Manipulation (PEPM’97)_, pages 203–217, 1997.
+> 2. Walid Taha and Tim Sheard. [MetaML: Multi-stage programming with explicit annotations](https://dl.acm.org/citation.cfm?id=259019). In _Proceedings of the Symposium on Partial Evaluation and Semantic-Based Program Manipulation (PEPM’97)_, pages 203–217, 1997.
 
 
 ## How to Compile
