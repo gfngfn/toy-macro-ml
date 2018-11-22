@@ -26,14 +26,21 @@ let pp_mono_type ppf ty =
 
 
 type level =
-  | Single
+  | AppLeft
+  | AppRight
   | Free
 
 
-let enclose_single ppf lev pp =
+let enclose_app_left ppf lev pp =
   match lev with
-  | Single -> pp ppf ()
-  | Free   -> Format.fprintf ppf "(%a)" pp ()
+  | AppLeft         -> Format.fprintf ppf "(%a)" pp ()
+  | AppRight | Free -> pp ppf ()
+
+
+let enclose_app_right ppf lev pp =
+  match lev with
+  | AppLeft | AppRight -> Format.fprintf ppf "(%a)" pp ()
+  | Free               -> pp ppf ()
 
 
 let pp_ev_value ppf = function
@@ -49,41 +56,32 @@ let rec pp_ev_value_1 lev ppf = function
       Symbol.pp ppf symb
 
   | V1Apply(v1, v2) ->
-      enclose_single ppf lev (fun ppf () ->
+      enclose_app_left ppf lev (fun ppf () ->
         Format.fprintf ppf "%a %a"
-          (pp_ev_value_1 Free) v1
-          (pp_ev_value_1 Single) v2
+          (pp_ev_value_1 AppRight) v1
+          (pp_ev_value_1 AppLeft) v2
       )
 
   | V1Fix(None, sx, v0) ->
-      enclose_single ppf lev (fun ppf () ->
+      enclose_app_right ppf lev (fun ppf () ->
         Format.fprintf ppf "fun %a -> %a"
           Symbol.pp sx
           (pp_ev_value_1 Free) v0
       )
 
   | V1Fix(Some(sf), sx, v0) ->
-      enclose_single ppf lev (fun ppf () ->
+      enclose_app_right ppf lev (fun ppf () ->
         Format.fprintf ppf "fix %a fun %a -> %a"
           Symbol.pp sf
           Symbol.pp sx
           (pp_ev_value_1 Free) v0
       )
 
-  | V1Operation(opapp) ->
-      begin
-        match opapp with
-        | Arity2(op2, v1, v2) ->
-            enclose_single ppf lev (fun ppf () ->
-              Format.fprintf ppf "%a %a %a"
-                (pp_ev_value_1 Single) v1
-                Operation.pp_arity2_rich op2
-                (pp_ev_value_1 Single) v2
-            )
-      end
+  | V1Primitive(x) ->
+      Format.fprintf ppf "%s" x
 
   | V1If(v0, v1, v2) ->
-      enclose_single ppf lev (fun ppf () ->
+      enclose_app_right ppf lev (fun ppf () ->
         Format.fprintf ppf "if %a then %a else %a"
           (pp_ev_value_1 Free) v0
           (pp_ev_value_1 Free) v1
@@ -102,6 +100,12 @@ and pp_ev_value_0 lev ppf = function
       Format.fprintf ppf "%s" x
 
   | V0Next(v1) ->
-      enclose_single ppf lev (fun ppf () ->
-        Format.fprintf ppf "@%a" (pp_ev_value_1 Single) v1
+      enclose_app_left ppf lev (fun ppf () ->
+        Format.fprintf ppf "@@%a" (pp_ev_value_1 AppLeft) v1
       )
+
+
+let pp_ev_value_1_single = pp_ev_value_1 AppLeft
+
+
+let pp_ev_value_0_single = pp_ev_value_0 AppLeft

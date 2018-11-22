@@ -3,10 +3,10 @@ open Syntax
 open Operation
 
 
-let lam2 : Operation.arity2 -> ev_value_1 =
-  let s1 = Symbol.generate () in
-  let s2 = Symbol.generate () in
-  fun op2 -> V1Fix(None, s1, V1Fix(None, s2, V1Operation(Arity2(op2, V1Symbol(s1), V1Symbol(s2)))))
+let lam2 (op2 : arity2) : ev_value_0 =
+  let x1 = "%p1" in
+  let x2 = "%p2" in
+  V0Closure(None, x1, EvFix(None, x2, EvOperation(Arity2(op2, EvVariable(x1), EvVariable(x2)))), Env.empty)
 
 
 let initial_type_environment : Typeenv.t * environment =
@@ -18,9 +18,9 @@ let initial_type_environment : Typeenv.t * environment =
   let tycomp = i @-> i @-> b in
   let tyarith = i @-> i @-> i in
 
-  List.fold_left (fun (tyenv, env) (x, ty, v1) ->
+  List.fold_left (fun (tyenv, env) (x, ty, v) ->
     let tyenv = tyenv |> Typeenv.add x (Typeenv.Primitive(ty)) in
-    let env = env |> Env.add x (Env.Both(v1)) in
+    let env = env |> Env.add x (Env.Both(v)) in
     (tyenv, env)
   ) (Typeenv.empty, Env.empty) [
     ("&&", tylogic, lam2 Land );

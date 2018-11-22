@@ -63,9 +63,9 @@ a non-empty sequence of macro parameter(s):
 
 a macro parameter:
   p ::=
-    | '~' '(' x ':' ty ')'    (an early parameter)
-    | x ':' ty                (a late parameter)
-    | x ':' ty '->' x ':' ty  (a binder/bindee parameter)
+    | '~' '(' x ':' ty ')'                    (an early parameter)
+    | x ':' ty                                (a late parameter)
+    | '(' x ':' ty ')' '->' '(' x ':' ty ')'  (a binder/bindee parameter)
 
 a non-empty sequence of macro argument(s):
   as ::= a | a ',' as

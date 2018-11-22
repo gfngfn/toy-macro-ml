@@ -1,0 +1,4 @@
+letmac bind_double!(e1 : int, (x : int) -> (e2 : int)) : int =
+  let (x : int) = e1 + e1 in e2
+in
+bind_double!(3, y -> y * y)

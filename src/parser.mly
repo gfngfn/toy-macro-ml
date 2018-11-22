@@ -122,9 +122,9 @@ macroparams:
   | macparam=macroparam; COMMA; tail=macroparams { macparam :: tail }
 ;
 %inline macroparam:
-  | TILDE; ident_and_ty=ident_and_ty                        { EarlyParam(ident_and_ty) }
-  | ident_and_ty=ident_and_ty_raw                           { LateParam(ident_and_ty) }
-  | binder=ident_and_ty_raw; ARROW; bindee=ident_and_ty_raw { BindingParam(binder, bindee) }
+  | TILDE; ident_and_ty=ident_and_ty                { EarlyParam(ident_and_ty) }
+  | ident_and_ty=ident_and_ty_raw                   { LateParam(ident_and_ty) }
+  | binder=ident_and_ty; ARROW; bindee=ident_and_ty { BindingParam(binder, bindee) }
 ;
 exprlet:
   | dec=letdec; IN; e2=exprlet {

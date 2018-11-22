@@ -10,7 +10,7 @@ let main fname =
   let (ty, eve) = Typechecker.main tyenv utast in
   Format.printf "Type: %a\n" RichPrinting.pp_mono_type ty;
   let v = Evaluator.main env eve in
-  Format.printf "Result0: %a\n" RichPrinting.(pp_ev_value_0 Free) v;
+  Format.printf "Result0: %a\n" RichPrinting.pp_ev_value_0_single v;
   ()
 
 
@@ -26,6 +26,9 @@ let () =
 
   | SeeEndOfFileInComment(rng) ->
       Format.printf "%a: unclosed comment\n" Range.pp rng
+
+  | UnknownBaseType(rng, s) ->
+      Format.printf "%a: unknown base type %s\n" Range.pp rng s
 
   | Typechecker.UnboundVariable(rng, x) ->
       Format.printf "%a: unbound variable '%s'\n" Range.pp rng x

@@ -21,7 +21,7 @@ let rec eval_0 (env : environment) (eve : ev_ast) : ev_value_0 =
               match entry with
               | Env.V1(_)   -> failwith ("variable '" ^ x ^ "' is for stage 1")
               | Env.V0(v)   -> v
-              | Env.Both(v) -> eval_0 env (unlift v)
+              | Env.Both(v) -> v
             end
       end
 
@@ -90,7 +90,7 @@ and eval_1 (env : environment) (eve : ev_ast) : ev_value_1 =
               match entry with
               | Env.V0(_)   -> failwith ("variable '" ^ x ^ "' is for stage 0")
               | Env.V1(v)   -> v
-              | Env.Both(v) -> v
+              | Env.Both(_) -> V1Primitive(x)
             end
       end
 
@@ -114,7 +114,10 @@ and eval_1 (env : environment) (eve : ev_ast) : ev_value_1 =
       V1Apply(v1, v2)
 
   | EvOperation(opapp) ->
+      failwith "EvOperation at stage 1"
+(*
       V1Operation(Operation.map (eval_1 env) opapp)
+*)
 
   | EvIf(eve0, eve1, eve2) ->
       let v0 = eval_1 env eve0 in
@@ -142,9 +145,12 @@ and unlift (v : ev_value_1) : ev_ast =
   | V1Symbol(symb) ->
       let x = Symbol.to_identifier symb in
       EvVariable(x)
-
+(*
   | V1Operation(opapp) ->
       EvOperation(Operation.map unlift opapp)
+*)
+  | V1Primitive(x) ->
+      EvVariable(x)
 
   | V1Fix(sfopt, sx, v0) ->
       let fopt =
@@ -170,6 +176,6 @@ and unlift (v : ev_value_1) : ev_ast =
 
 let main (env : environment) (eve : ev_ast) : ev_value_0 =
   let v1 = eval_1 env eve in
-  Format.printf "Result1: %a\n" RichPrinting.(pp_ev_value_1 Free) v1;
+  Format.printf "Result1: %a\n" RichPrinting.pp_ev_value_1_single v1;
   let eve = unlift v1 in
   eval_0 env eve

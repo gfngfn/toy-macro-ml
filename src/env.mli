@@ -2,7 +2,7 @@
 type ('v0, 'v1) entry =
   | V0   of 'v0
   | V1   of 'v1
-  | Both of 'v1
+  | Both of 'v0
 
 type ('v0, 'v1) t
 
