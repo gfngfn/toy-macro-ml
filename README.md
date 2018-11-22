@@ -74,7 +74,7 @@ a macro argument:
   a ::=
     | '~' e     (an early argument)
     | e         (a late argument)
-    | x '->' e  (a binder/bindeeargument)
+    | x '->' e  (a binder/bindee argument)
 
 a monomorphic type:
   ty ::=
