@@ -3,7 +3,7 @@
 This is an implementation of *MacroML* \[1\]. It consists of
 
 * a type checker for MacroML (which also performs the translation of MacroML programs to *MetaML* \[2\]), and
-* a näive back-end interpreter of MetaML.
+* a naïve back-end interpreter of MetaML.
 
 The syntax and the type system are naturally extended from the original version as to macro parameters. See the paper below \[1\] for detail:
 
