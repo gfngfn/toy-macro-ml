@@ -1,0 +1,4 @@
+letmac pow!(~(n : int), x : int) : int =
+  ~(if n <= 0 then @1 else @(x * pow!(~(n - 1), x)))
+in
+pow!(~(1 + 2), pow!(~(7 - 3), 8 - 5) + 4) + 6
