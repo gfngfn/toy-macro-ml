@@ -5,7 +5,7 @@ This is an implementation of *MacroML* \[1\]. It consists of
 * a type checker for MacroML (which also performs the translation of MacroML programs to *MetaML* \[2\]), and
 * a näive back-end interpreter of MetaML.
 
-The syntax and the type system are naturally extended from the original version as to macro parameters. See the paper below for detail:
+The syntax and the type system are naturally extended from the original version as to macro parameters. See the paper below \[1\] for detail:
 
 > 1. Steve Ganz, Amr Sabry, and Walid Taha. [Macros as multi-stage computations: Type-safe, generative, binding macros in MacroML](https://dl.acm.org/citation.cfm?id=507646). In _Proceedings of the International Conference on Functional Programming (ICFP’01)_, pages 74–85, 2001.
 > 2. Walid Taha and Tim Sheard. [MetaML: Multi-stage programming with explicit annotations](https://dl.acm.org/citation.cfm?id=259019). In _Proceedings of the Symposium on Partial Evaluation and Semantic-Based Program Manipulation (PEPM’97)_, pages 203–217, 1997.
@@ -19,7 +19,7 @@ Under the condition that `make` and `dune` are installed, invoke:
 $ make
 ~~~
 
-and then the executable file `main` will be created.
+and then the executable file `./main` will be created.
 
 
 ## Usage
@@ -27,7 +27,7 @@ and then the executable file `main` will be created.
 Just invoke:
 
 ~~~sh
-$ main <source-file>
+$ ./main <source-file>
 ~~~
 
 and then you can see on stdout:
