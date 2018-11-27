@@ -1,0 +1,10 @@
+let (power3 : int -> int) =
+  ~(let (genpower : int -> @(int -> int)) =
+      letrec (aux : int -> @int -> @int) (n : int) (x : @int) =
+        if n <= 0 then @1 else @(~x * ~(aux (n - 1) x))
+      in
+      (fun (n : int) -> @(fun (y : int) -> ~(aux n (@y))))
+    in
+    genpower (2 * 3))
+in
+power3 (5 + 6)
