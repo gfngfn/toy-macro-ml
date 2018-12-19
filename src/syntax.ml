@@ -95,9 +95,6 @@ and ev_value_0 =
 
 and ev_value_1 =
   | V1Embed     of ev_value
-(*
-  | V1Operation of ev_value_1 Operation.t
-*)
   | V1Primitive of identifier
   | V1Symbol    of Symbol.t
   | V1Fix       of Symbol.t option * Symbol.t * ev_value_1

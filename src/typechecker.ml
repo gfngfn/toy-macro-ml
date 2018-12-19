@@ -87,13 +87,6 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
             begin
               match boundto with
               | Typeenv.Primitive(ty) ->
-(*
-                  let eve =
-                    match stg with
-                    | Stage0 -> EvValue0(V0Primitive(x))
-                    | Stage1 -> EvValue1(V1Primitive(x))
-                  in
-*)
                   (ty, EvVariable(x))
 
               | Typeenv.Normal((ty, stgreq)) ->

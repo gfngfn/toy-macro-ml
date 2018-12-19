@@ -115,9 +115,6 @@ and eval_1 (env : environment) (eve : ev_ast) : ev_value_1 =
 
   | EvOperation(opapp) ->
       failwith "EvOperation at stage 1"
-(*
-      V1Operation(Operation.map (eval_1 env) opapp)
-*)
 
   | EvIf(eve0, eve1, eve2) ->
       let v0 = eval_1 env eve0 in
@@ -145,10 +142,7 @@ and unlift (v : ev_value_1) : ev_ast =
   | V1Symbol(symb) ->
       let x = Symbol.to_identifier symb in
       EvVariable(x)
-(*
-  | V1Operation(opapp) ->
-      EvOperation(Operation.map unlift opapp)
-*)
+
   | V1Primitive(x) ->
       EvVariable(x)
 
