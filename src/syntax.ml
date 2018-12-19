@@ -12,6 +12,7 @@ let pp_identifier ppf s =
 
 
 type base_type =
+  | UnitType
   | IntType
   | BoolType
 [@@deriving show { with_path = false; } ]
@@ -30,6 +31,7 @@ type untyped_ast = Range.t * untyped_ast_main
   [@printer (fun ppf (_, utastmain) -> pp_untyped_ast_main ppf utastmain)]
 
 and untyped_ast_main =
+  | Unit
   | Bool     of bool
   | Int      of int
   | Var      of identifier
@@ -42,6 +44,9 @@ and untyped_ast_main =
   | Prev     of untyped_ast
   | LetMacroIn of identifier * macro_param list * mono_type * untyped_ast * untyped_ast
   | ApplyMacro of identifier * macro_argument list
+  | Ref      of untyped_ast
+  | Deref    of untyped_ast
+  | Assign   of untyped_ast * untyped_ast
 
 and binder = (Range.t * identifier) * mono_type
 
@@ -61,6 +66,7 @@ and mono_type_main =
   | BaseType of base_type
   | CodeType of mono_type
   | FuncType of mono_type * mono_type
+  | RefType  of mono_type
 
 and macro_param_type =
   | EarlyParamType   of mono_type
@@ -76,6 +82,7 @@ let rec erase_range (_, tymain) =
     | BaseType(_)        -> tymain
     | FuncType(ty1, ty2) -> FuncType(iter ty1, iter ty2)
     | CodeType(ty1)      -> CodeType(iter ty1)
+    | RefType(ty1)       -> RefType(iter ty1)
   in
   (Range.dummy "erased", tymain)
 
@@ -84,6 +91,7 @@ let overwrite_range rng (_, tymain) = (rng, tymain)
 
 
 type ev_value =
+  | ValUnit
   | ValInt  of int
   | ValBool of bool
 
@@ -92,6 +100,7 @@ and ev_value_0 =
   | V0Closure   of identifier option * identifier * ev_ast * environment
   | V0Primitive of identifier
   | V0Next      of ev_value_1
+  | V0Location  of ev_value_0 ref
 
 and ev_value_1 =
   | V1Embed     of ev_value
@@ -100,6 +109,9 @@ and ev_value_1 =
   | V1Fix       of Symbol.t option * Symbol.t * ev_value_1
   | V1Apply     of ev_value_1 * ev_value_1
   | V1If        of ev_value_1 * ev_value_1 * ev_value_1
+  | V1Ref       of ev_value_1
+  | V1Deref     of ev_value_1
+  | V1Assign    of ev_value_1 * ev_value_1
 
 and ev_ast =
   | EvValue0    of ev_value_0
@@ -111,6 +123,9 @@ and ev_ast =
   | EvIf        of ev_ast * ev_ast * ev_ast
   | EvPrev      of ev_ast
   | EvNext      of ev_ast
+  | EvRef       of ev_ast
+  | EvDeref     of ev_ast
+  | EvAssign    of ev_ast * ev_ast
 
 and environment = (ev_value_0, ev_value_1) Env.t
   [@printer (fun ppf _ -> Format.fprintf ppf "<Env>")]

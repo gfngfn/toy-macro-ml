@@ -17,6 +17,7 @@ exception NotAFunction of Range.t * mono_type
 exception NotACode of Range.t * mono_type
 exception ShouldBeBound of Range.t * identifier * identifier * mono_type
 exception NonFunctionRecursion of Range.t
+exception NotARef of Range.t
 
 
 let lam x eve =
@@ -59,6 +60,15 @@ let unify tyact tyexp =
 
 let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
   match utastmain with
+  | Unit ->
+      let ty = (rng, BaseType(UnitType)) in
+      let eve =
+        match stg with
+        | Stage0 -> EvValue0(V0Embed(ValUnit))
+        | Stage1 -> EvValue1(V1Embed(ValUnit))
+      in
+      (ty, eve)
+
   | Int(n) ->
       let ty = (rng, BaseType(IntType)) in
       let eve =
@@ -266,6 +276,36 @@ let rec aux (stg : stage) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ast) =
               | Some(_) ->
                   raise (NotAMacro(rng, f))
             end
+      end
+
+  | Ref(utast0) ->
+      let (ty0, eve0) = aux stg tyenv utast0 in
+      ((rng, RefType(ty0)), EvRef(eve0))
+
+  | Deref(utast0) ->
+      let (ty0, eve0) = aux stg tyenv utast0 in
+      begin
+        match ty0 with
+        | (_, RefType(ty0sub)) ->
+            (ty0sub, EvDeref(eve0))
+
+        | _ ->
+            let (rng0, _) = utast0 in
+            raise (NotARef(rng0))
+      end
+
+  | Assign(utast1, utast2) ->
+      let (ty1, eve1) = aux stg tyenv utast1 in
+      let (ty2, eve2) = aux stg tyenv utast2 in
+      begin
+        match ty1 with
+        | (_, RefType(ty1sub)) ->
+            unify ty1sub ty2;
+            ((rng, BaseType(UnitType)), EvAssign(eve1, eve2))
+
+        | _ ->
+            let (rng1, _) = utast1 in
+            raise (NotARef(rng1))
       end
 
 

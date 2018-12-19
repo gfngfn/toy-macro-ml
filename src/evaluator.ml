@@ -70,6 +70,32 @@ let rec eval_0 (env : environment) (eve : ev_ast) : ev_value_0 =
       let v0 = eval_1 env eve0 in
       V0Next(v0)
 
+  | EvRef(eve0) ->
+      let v0 = eval_0 env eve0 in
+      let loc = ref v0 in
+      V0Location(loc)
+
+  | EvDeref(eve0) ->
+      let v0 = eval_0 env eve0 in
+      begin
+        match v0 with
+        | V0Location(loc) -> !loc
+        | _               -> failwith "not a location"
+      end
+
+  | EvAssign(eve1, eve2) ->
+      let v1 = eval_0 env eve1 in
+      begin
+        match v1 with
+        | V0Location(loc) ->
+            let v2 = eval_0 env eve2 in
+            loc := v2;
+            V0Embed(ValUnit)
+
+        | _ ->
+            failwith "not a location"
+      end
+
 
 and eval_1 (env : environment) (eve : ev_ast) : ev_value_1 =
   match eve with
@@ -133,6 +159,19 @@ and eval_1 (env : environment) (eve : ev_ast) : ev_value_1 =
   | EvNext(_) ->
       failwith "EvNext at stage 1"
 
+  | EvRef(eve0) ->
+      let v0 = eval_1 env eve0 in
+      V1Ref(v0)
+
+  | EvDeref(eve0) ->
+      let v0 = eval_1 env eve0 in
+      V1Deref(v0)
+
+  | EvAssign(eve1, eve2) ->
+      let v1 = eval_1 env eve1 in
+      let v2 = eval_1 env eve2 in
+      V1Assign(v1, v2)
+
 
 let rec unlift (v : ev_value_1) : ev_ast =
   match v with
@@ -166,6 +205,19 @@ let rec unlift (v : ev_value_1) : ev_ast =
       let eve1 = unlift v1 in
       let eve2 = unlift v2 in
       EvIf(eve0, eve1, eve2)
+
+  | V1Ref(v0) ->
+      let eve0 = unlift v0 in
+      EvRef(eve0)
+
+  | V1Deref(v0) ->
+      let eve0 = unlift v0 in
+      EvDeref(eve0)
+
+  | V1Assign(v1, v2) ->
+      let eve1 = unlift v1 in
+      let eve2 = unlift v2 in
+      EvAssign(eve1, eve2)
 
 
 let main (env : environment) (eve : ev_ast) : ev_value_0 =
