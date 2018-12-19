@@ -134,7 +134,7 @@ and eval_1 (env : environment) (eve : ev_ast) : ev_value_1 =
       failwith "EvNext at stage 1"
 
 
-and unlift (v : ev_value_1) : ev_ast =
+let rec unlift (v : ev_value_1) : ev_ast =
   match v with
   | V1Embed(c) ->
       EvValue0(V0Embed(c))
