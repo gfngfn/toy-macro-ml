@@ -32,6 +32,7 @@ rule token = parse
           | "else"   -> ELSE(pos)
           | "true"   -> TRUE(pos)
           | "false"  -> FALSE(pos)
+          | "ref"    -> REF(pos)
           | _        -> IDENT(pos, s)
       }
   | ("0" | nzdigit (digit*) | ("0x" | "0X") hex+) {
@@ -46,8 +47,11 @@ rule token = parse
   | ":"  { COLON(Range.from_lexbuf lexbuf) }
   | "~"  { TILDE(Range.from_lexbuf lexbuf) }
   | "@"  { ATMARK(Range.from_lexbuf lexbuf) }
-  | "!"  { EXCLAMATION(Range.from_lexbuf lexbuf) }
+  | "?"  { APPMACRO(Range.from_lexbuf lexbuf) }
+  | "!"  { DEREF(Range.from_lexbuf lexbuf) }
+  | ";"  { SEMICOLON(Range.from_lexbuf lexbuf) }
   | ","  { COMMA(Range.from_lexbuf lexbuf) }
+  | ":=" { ASSIGN(Range.from_lexbuf lexbuf) }
   | "/*" { comment (Range.from_lexbuf lexbuf) lexbuf; token lexbuf }
   | ("&" (nssymbol*)) { BINOP_AMP(Range.from_lexbuf lexbuf, Lexing.lexeme lexbuf) }
   | ("|" (nssymbol*)) { BINOP_BAR(Range.from_lexbuf lexbuf, Lexing.lexeme lexbuf) }

@@ -43,7 +43,8 @@
     BindingArg(x, e) :: tail
 %}
 
-%token<Range.t> LET LETREC LETMAC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE TILDE ATMARK COLON COMMA EXCLAMATION
+%token<Range.t> LET LETREC LETMAC DEFEQ IN LAMBDA ARROW IF THEN ELSE LPAREN RPAREN TRUE FALSE TILDE ATMARK COLON COMMA APPMACRO
+%token<Range.t> SEMICOLON REF DEREF ASSIGN
 %token<Range.t * Syntax.identifier> IDENT BINOP_AMP BINOP_BAR BINOP_EQ BINOP_LT BINOP_GT
 %token<Range.t * Syntax.identifier> BINOP_TIMES BINOP_DIVIDES BINOP_PLUS BINOP_MINUS
 %token<Range.t * int> INT
@@ -112,7 +113,7 @@ letdec:
       }
 ;
 macdec:
-  | tok1=LETMAC; ident=ident; EXCLAMATION; LPAREN; macparams=macroparams; RPAREN; COLON; ty=ty; DEFEQ; e1=exprlet {
+  | tok1=LETMAC; ident=ident; APPMACRO; LPAREN; macparams=macroparams; RPAREN; COLON; ty=ty; DEFEQ; e1=exprlet {
         let (_, x) = ident in
         (tok1, x, macparams, ty, e1)
       }
@@ -151,6 +152,21 @@ exprfun:
         let rng = make_range (Token(tok1)) (Ranged(e)) in
         make_lambda (Some(rng)) args e
       }
+  | e=exprproc { e }
+;
+exprproc:
+  | e1=exprassign; SEMICOLON; e2=exprproc {
+        let rng = make_range (Ranged(e1)) (Ranged(e2)) in
+        let dummy_ident_and_ty = ((Range.dummy "exprproc", "%proc"), (rng, BaseType(UnitType))) in
+        (rng, LetIn(dummy_ident_and_ty, e1, e2))
+      }
+  | e=exprland { e }
+;
+exprassign:
+  | e1=exprland; ASSIGN; e2=exprassign {
+        let rng = make_range (Ranged(e1)) (Ranged(e2)) in
+        (rng, Assign(e1, e2))
+      }
   | e=exprland { e }
 ;
 exprland:
@@ -182,6 +198,10 @@ exprapp:
         let rng = make_range (Ranged(e1)) (Ranged(e2)) in
         (rng, Apply(e1, e2))
       }
+  | tok1=REF; e=exprbot {
+        let rng = make_range (Token(tok1)) (Ranged(e)) in
+        (rng, Ref(e))
+      }
   | tok1=ATMARK; e=exprbot {
         let rng = make_range (Token(tok1)) (Ranged(e)) in
         (rng, Next(e))
@@ -190,7 +210,7 @@ exprapp:
         let rng = make_range (Token(tok1)) (Ranged(e)) in
         (rng, Prev(e))
       }
-  | ident=ident; EXCLAMATION; LPAREN; macargs=macroargs; rng2=RPAREN {
+  | ident=ident; APPMACRO; LPAREN; macargs=macroargs; rng2=RPAREN {
         let (rng1, x) = ident in
         let rng = make_range (Token(rng1)) (Token(rng2)) in
         (rng, ApplyMacro(x, macargs))
@@ -209,4 +229,8 @@ exprbot:
   | c=INT { let (rng, n) = c in (rng, Int(n)) }
   | ident=ident { let (rng, x) = ident in (rng, Var(x)) }
   | LPAREN; e=exprlet; RPAREN { e }
+  | tok1=DEREF; e=exprbot {
+        let rng = make_range (Token(tok1)) (Ranged(e)) in
+        (rng, Deref(e))
+      }
 ;
