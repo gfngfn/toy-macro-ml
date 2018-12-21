@@ -93,6 +93,10 @@ tybot:
         let rng = make_range (Token(tok1)) (Ranged(ty)) in
         (rng, CodeType(ty))
       }
+  | tok1=REF; ty=tybot {
+        let rng = make_range (Token(tok1)) (Ranged(ty)) in
+        (rng, RefType(ty))
+      }
   | LPAREN; ty=ty; RPAREN { ty }
 ;
 ident:
