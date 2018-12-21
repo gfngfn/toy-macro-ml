@@ -1,0 +1,5 @@
+in ~(
+  let (r : ref @int) = ref (@0) in
+  let (a : @(int -> int)) = @(fun (x : int) -> ~(r := @x; @1)) in
+  !r
+)
